@@ -2,7 +2,6 @@
 controller_manager:
   ros__parameters:
     update_rate: 100  # Hz
-
     Cleaner_controller:
       type: joint_trajectory_controller/JointTrajectoryController
 

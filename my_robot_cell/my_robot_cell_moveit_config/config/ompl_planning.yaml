@@ -1,0 +1,40 @@
+# OMPL Planning Configuration for UR5e workcell
+# This configures the OMPL planning pipeline used by move_group.
+
+planning_plugin: ompl_interface/OMPLPlanner
+request_adapters: >-
+  default_planner_request_adapters/AddTimeOptimalParameterization
+  default_planner_request_adapters/ResolveConstraintFrames
+  default_planner_request_adapters/FixWorkspaceBounds
+  default_planner_request_adapters/FixStartStateBounds
+  default_planner_request_adapters/FixStartStateCollision
+  default_planner_request_adapters/FixStartStatePathConstraints
+
+# Resample the planned path at this interval (seconds) before sending to the controller.
+# 0.1s = 10 Hz output trajectory — well within the UR controller's 500 Hz capability,
+# ensuring smooth interpolation with no sub-millisecond jumps.
+start_state_max_bounds_error: 0.1
+
+planner_configs:
+  RRTConnect:
+    type: geometric::RRTConnect
+    range: 0.0
+  RRTstar:
+    type: geometric::RRTstar
+    range: 0.0
+  PRM:
+    type: geometric::PRM
+    max_nearest_neighbors: 10
+
+ur_arm:
+  default_planner_config: RRTConnect
+  # Maximum fraction of the joint space that a single valid segment can cover.
+  # THIS IS THE CRITICAL FIX FOR "WHOLE MOTION IN ONE STEP".
+  # 0.005 forces OMPL to insert intermediate waypoints densely, completely avoiding
+  # the quintic spline overshoot issue in the joint_trajectory_controller.
+  longest_valid_segment_fraction: 0.005
+  projection_evaluator: joints(ur5e_shoulder_pan_joint,ur5e_shoulder_lift_joint)
+  planner_configs:
+    - RRTConnect
+    - RRTstar
+    - PRM

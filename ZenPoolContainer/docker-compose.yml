@@ -1,0 +1,41 @@
+services:
+  zenpool:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: zenpool_container
+    container_name: zenpool
+    user: ros
+    stdin_open: true    # -i
+    tty: true           # -t
+    network_mode: host
+    ipc: host
+    privileged: false
+    ulimits:
+      rtprio: 99
+    cap_add:
+      - SYS_NICE
+
+    volumes:
+      - ~/ws_me462:/home/ros/ws_me462
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /dev:/dev
+
+    environment:
+      - DISPLAY=${DISPLAY}
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+
+    device_cgroup_rules:
+      - "c *:* rmw"
+
+    # NVIDIA GPU support — requires nvidia-container-toolkit installed on host.
+    # Comment out the deploy block if running on a machine without an NVIDIA GPU
+    # (e.g. Raspberry Pi).
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

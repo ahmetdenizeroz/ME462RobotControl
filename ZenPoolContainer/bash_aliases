@@ -2,8 +2,8 @@
 # Basic Aliases
 
 # ROS Aliases
-alias sros='source /opt/ros/humble/setup.zsh'
-alias sws='source install/local_setup.zsh'
+alias sros='source /opt/ros/humble/setup.bash'
+alias sws='source install/local_setup.bash'
 alias colcon_fresh='rm -rf build install log && colcon build'
 
 # Ogan Aliases
@@ -12,15 +12,13 @@ alias run_zenpool_container='docker run -it \
             --user ros \
             --network=host \
             --ipc=host \
-            --runtime=nvidia \
+            --ulimit rtprio=99 \
+            --cap-add=sys_nice \
             -v ~/ws_me462:/home/ros/ws_me462 \
             -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
             --device-cgroup-rule="c *:* rmw" \
             --env=DISPLAY \
             -v /dev:/dev \
-            --env=NVIDIA_VISIBLE_DEVICES=all \
-            --env=NVIDIA_DRIVER_CAPABILITIES=all \
-            --gpus all \
             zenpool_container'
 
 #Shell shortcuts

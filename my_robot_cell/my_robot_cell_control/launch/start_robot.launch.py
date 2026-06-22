@@ -115,7 +115,6 @@ def generate_launch_description():
     launch_rviz = LaunchConfiguration("launch_rviz")
     use_fake_hardware = LaunchConfiguration("use_fake_hardware")
     fake_sensor_commands = LaunchConfiguration("fake_sensor_commands")
-    controllers_file = LaunchConfiguration("controllers_file")
     description_package = LaunchConfiguration("description_package")
     description_file = LaunchConfiguration("description_file")
     kinematics_params_file = LaunchConfiguration("kinematics_params_file")

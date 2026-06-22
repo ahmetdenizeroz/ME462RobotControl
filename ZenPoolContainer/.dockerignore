@@ -1,0 +1,19 @@
+# ROS2 colcon build artifacts (rebuilt inside container)
+build/
+install/
+log/
+
+# Git metadata
+.git/
+.gitignore
+
+# IDE / editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db

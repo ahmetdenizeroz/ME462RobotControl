@@ -11,7 +11,8 @@ RUN apt-get update \
     ros-humble-ur-client-library \
     ros-humble-ur \
     ros-humble-moveit \ 
-    ros-humble-moveit-visual-tools \ 
+    ros-humble-moveit-visual-tools \
+    python3-opencv \
     && rm -rf /var/lib/apt/lists/*
 
 #example copy line

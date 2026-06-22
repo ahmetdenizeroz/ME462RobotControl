@@ -1,6 +1,6 @@
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit_visual_tools/moveit_visual_tools.h>
-#include <moveit/trajectory_processing/iterative_time_parameterization.h>
+#include <moveit/trajectory_processing/time_optimal_trajectory_generation.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <geometric_shapes/shape_operations.h>
 #include <shape_msgs/msg/mesh.hpp>
@@ -144,8 +144,8 @@ bool executeCartesianWaypoints(moveit::planning_interface::MoveGroupInterface& m
   robot_trajectory::RobotTrajectory rt(mgi.getRobotModel(), mgi.getName());
   rt.setRobotTrajectoryMsg(*mgi.getCurrentState(), plan.trajectory_);
   
-  trajectory_processing::IterativeParabolicTimeParameterization iptp;
-  iptp.computeTimeStamps(rt, v_scale, a_scale);
+  trajectory_processing::TimeOptimalTrajectoryGeneration totg;
+  totg.computeTimeStamps(rt, v_scale, a_scale);
   rt.getRobotTrajectoryMsg(plan.trajectory_);
 
   draw_traj(plan.trajectory_);
