@@ -2,6 +2,7 @@
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import TwistStamped
+from visualization_msgs.msg import Marker
 from std_srvs.srv import Trigger
 from controller_manager_msgs.srv import SwitchController
 import cv2
@@ -14,8 +15,9 @@ class FaceTrackerServo(Node):
     def __init__(self):
         super().__init__('face_tracker_servo')
         
-        # Publisher to MoveIt Servo
+        # Publishers
         self.twist_pub = self.create_publisher(TwistStamped, '/servo_node/delta_twist_cmds', 10)
+        self.marker_pub = self.create_publisher(Marker, '/camera_mount_marker', 10)
         
         # Ensure we are in velocity control mode
         self.switch_controller("forward_velocity_controller", "scaled_joint_trajectory_controller")
@@ -198,6 +200,28 @@ class FaceTrackerServo(Node):
         twist_msg.twist.angular.z = self.last_wz
         
         self.twist_pub.publish(twist_msg)
+        
+        # Publish Camera Holder Marker to RViz
+        marker = Marker()
+        marker.header.stamp = self.get_clock().now().to_msg()
+        marker.header.frame_id = "ur5e_tool0"
+        marker.ns = "camera_mount"
+        marker.id = 0
+        marker.type = Marker.MESH_RESOURCE
+        marker.action = Marker.ADD
+        marker.mesh_resource = "package://my_robot_cell_description/meshes/CamHolder.stl"
+        marker.pose.position.x = 0.0
+        marker.pose.position.y = 0.0
+        marker.pose.position.z = 0.02 # Slightly offset it past the baseplate if needed
+        marker.pose.orientation.w = 1.0
+        marker.scale.x = 0.001 # STL export is usually in mm, scale to meters
+        marker.scale.y = 0.001
+        marker.scale.z = 0.001
+        marker.color.a = 0.9 # Slightly transparent
+        marker.color.r = 0.2
+        marker.color.g = 0.2
+        marker.color.b = 0.8 # Blue color to easily distinguish it
+        self.marker_pub.publish(marker)
         
         # Display GUI
         cv2.drawMarker(frame, (int(center_x_img), int(center_y_img)), (0, 0, 255), cv2.MARKER_CROSS, 20, 2)

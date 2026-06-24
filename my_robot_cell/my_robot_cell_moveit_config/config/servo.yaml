@@ -20,6 +20,10 @@ publish_joint_positions: false
 publish_joint_velocities: true
 publish_joint_accelerations: false
 
+# Frequency to publish commands to the robot driver.
+# The UR5e requires 500Hz, so we set this to 0.002 seconds.
+publish_period: 0.06
+
 ## Plugins for smoothing outgoing commands
 smoothing_filter_plugin_name: "online_signal_smoothing::ButterworthFilterPlugin"
 

@@ -48,7 +48,7 @@ public:
         switchController("forward_velocity_controller", "scaled_joint_trajectory_controller");
         startServo();
 
-        timer_ = this->create_wall_timer(std::chrono::milliseconds(10), std::bind(&TeleopServoNode::controlLoop, this));
+        timer_ = this->create_wall_timer(std::chrono::milliseconds(2), std::bind(&TeleopServoNode::controlLoop, this));
         RCLCPP_INFO(this->get_logger(), "Teleop Node Ready! You can now drag the 'robot_target' marker in RViz.");
     }
 
@@ -207,7 +207,7 @@ private:
         }
 
         // Smooth Acceleration (Slew Rate Limiting)
-        double dt = 0.01; // 100Hz loop
+        double dt = 0.002; // 500Hz loop to match native UR5e hardware
         double max_a_lin = 0.3; // m/s^2 - Low acceleration for very smooth motion
         double max_a_ang = 0.5; // rad/s^2
 
@@ -235,7 +235,7 @@ private:
 
         // Force RViz to see the marker by broadcasting it every 0.5 seconds
         static int heartbeat = 0;
-        if (heartbeat++ % 50 == 0) {
+        if (heartbeat++ % 250 == 0) {
             server_->setPose("robot_target", target_pose_);
             server_->applyChanges();
         }
