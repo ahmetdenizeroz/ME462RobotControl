@@ -37,14 +37,14 @@
     <link name="pool">
       <visual>
         <geometry>
-          <mesh filename="package://my_robot_cell_description/meshes/ZenPoolWithToolBox.stl"/>
+          <mesh filename="package://my_robot_cell_description/meshes/environment/ZenPoolWithToolBox.stl"/>
         </geometry>
         <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
         <material name="gray"/>
       </visual>
       <collision>
         <geometry>
-          <mesh filename="package://my_robot_cell_description/meshes/ZenPoolWithToolBoxCollision.stl"/>
+          <mesh filename="package://my_robot_cell_description/meshes/environment/ZenPoolWithToolBoxCollision.stl"/>
         </geometry>
         <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
       </collision>
@@ -60,14 +60,14 @@
     <!-- <link name="tool_box">
       <visual>
         <geometry>
-          <mesh filename="package://my_robot_cell_description/meshes/ToolBoxPlatform.stl" />
+          <mesh filename="package://my_robot_cell_description/meshes/environment/ToolBoxPlatform.stl" />
         </geometry>
         <origin rpy="0 0 ${pi}" xyz="${0.25 - 0.045/2} 0 ${0.195/2}"/>
         <material name="white" />
       </visual>
       <collision>
         <geometry>
-          <mesh filename="package://my_robot_cell_description/meshes/ToolBoxPlatform.stl" />
+          <mesh filename="package://my_robot_cell_description/meshes/environment/ToolBoxPlatform.stl" />
         </geometry>
         <origin rpy="0 0 ${pi}" xyz="${0.25 - 0.045/2} 0 ${0.195/2}"/>
       </collision>
@@ -81,14 +81,14 @@
     <link name="tools">
       <visual>
         <geometry>
-          <mesh filename="package://my_robot_cell_description/meshes/ToolBoxes.stl" />
+          <mesh filename="package://my_robot_cell_description/meshes/environment/ToolBoxes.stl" />
         </geometry>
         <origin rpy="0 0 ${pi}" xyz="${0.25 - 0.045/2} 0 ${0.195/2}"/>
         <material name="red" />
       </visual>
       <collision>
         <geometry>
-          <mesh filename="package://my_robot_cell_description/meshes/ToolBoxes.stl" />
+          <mesh filename="package://my_robot_cell_description/meshes/environment/ToolBoxes.stl" />
         </geometry>
         <origin rpy="0 0 ${pi}" xyz="${0.25 - 0.045/2} 0 ${0.195/2}"/>
       </collision>
@@ -116,14 +116,14 @@
     <link name="tc_arm_side">
       <visual>
         <geometry>
-          <mesh filename="package://my_robot_cell_description/meshes/ToolChangerArmSide.stl"/>
+          <mesh filename="package://my_robot_cell_description/meshes/tool_changer/ToolChangerArmSide.stl"/>
         </geometry>
         <origin rpy="${pi} 0 0" xyz="0 0.0 -0.0248"/>
         <material name="gray"/>
       </visual>
       <collision>
         <geometry>
-          <mesh filename="package://my_robot_cell_description/meshes/ToolChangerArmSide.stl"/>
+          <mesh filename="package://my_robot_cell_description/meshes/tool_changer/ToolChangerArmSide.stl"/>
         </geometry>
         <origin rpy="${pi} 0 0" xyz="0 0.0 -0.0248"/>
       </collision>
@@ -137,14 +137,14 @@
     <!-- <link name="cleaner_tool">
       <visual>
         <geometry>
-          <mesh filename="package://my_robot_cell_description/meshes/CleanerTool.stl" scale="0.001 0.001 0.001"/>
+          <mesh filename="package://my_robot_cell_description/meshes/end_effectors/CleanerTool.stl" scale="0.001 0.001 0.001"/>
         </geometry>
         <origin rpy="0 ${pi} 0" xyz="-0.031739 0.039119 -0.097"/>
         <material name="blue"/>
       </visual>
       <collision>
         <geometry>
-          <mesh filename="package://my_robot_cell_description/meshes/CleanerTool.stl" scale="0.001 0.001 0.001"/>
+          <mesh filename="package://my_robot_cell_description/meshes/end_effectors/CleanerTool.stl" scale="0.001 0.001 0.001"/>
         </geometry>
         <origin rpy="0 ${pi} 0" xyz="-0.031739 0.039119 -0.097"/>
       </collision>
@@ -158,14 +158,14 @@
     <link name="pen_tool">
       <visual>
         <geometry>
-          <mesh filename="package://my_robot_cell_description/meshes/PenTool.stl" scale="0.001 0.001 0.001"/>
+          <mesh filename="package://my_robot_cell_description/meshes/end_effectors/PenTool.stl" scale="0.001 0.001 0.001"/>
         </geometry>
         <origin rpy="0 ${pi} 0" xyz="-0.016839 0.039119 -0.097"/>
         <material name="green"/>
       </visual>
       <collision>
         <geometry>
-          <mesh filename="package://my_robot_cell_description/meshes/PenTool.stl" scale="0.001 0.001 0.001"/>
+          <mesh filename="package://my_robot_cell_description/meshes/end_effectors/PenTool.stl" scale="0.001 0.001 0.001"/>
         </geometry>
         <origin rpy="0 ${pi} 0" xyz="-0.016839 0.039119 -0.097"/>
       </collision>

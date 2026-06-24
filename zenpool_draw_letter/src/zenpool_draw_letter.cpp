@@ -406,8 +406,8 @@ int main(int argc, char* argv[])
 
 
   moveit::planning_interface::PlanningSceneInterface psi;
-  Tool pen_tool("pen_tool", "package://my_robot_cell_description/meshes/PenTool.stl", move_group_interface.getEndEffectorLink(), tool_pose);
-  Tool cleaner_tool("cleaner_tool", "package://my_robot_cell_description/meshes/CleanerTool.stl", move_group_interface.getEndEffectorLink(), tool_pose);
+  Tool pen_tool("pen_tool", "package://my_robot_cell_description/meshes/end_effectors/PenTool.stl", move_group_interface.getEndEffectorLink(), tool_pose);
+  Tool cleaner_tool("cleaner_tool", "package://my_robot_cell_description/meshes/end_effectors/CleanerTool.stl", move_group_interface.getEndEffectorLink(), tool_pose);
 
   // --- 1. CLEANING PHASE ---
   executeJoint(move_group_interface, drop_cleaner_joint_positions, logger, draw_traj, moveit_visual_tools, prompt, "Move to drop_cleaner hover");
