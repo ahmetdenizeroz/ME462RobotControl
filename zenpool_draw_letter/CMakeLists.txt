@@ -69,7 +69,14 @@ install(TARGETS
 
 install(PROGRAMS
   scripts/face_tracker_servo.py
+  scripts/aruco_tracker_servo.py
+  scripts/custom_dashboard.py
   DESTINATION lib/${PROJECT_NAME}
+)
+
+install(DIRECTORY
+  launch
+  DESTINATION share/${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)

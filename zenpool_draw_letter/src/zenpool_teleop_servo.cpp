@@ -45,7 +45,7 @@ public:
         createInteractiveMarker();
 
         // Ensure controllers and servo are ready
-        switchController("forward_velocity_controller", "scaled_joint_trajectory_controller");
+        switchController("forward_position_controller", "joint_trajectory_controller");
         startServo();
 
         timer_ = this->create_wall_timer(std::chrono::milliseconds(2), std::bind(&TeleopServoNode::controlLoop, this));

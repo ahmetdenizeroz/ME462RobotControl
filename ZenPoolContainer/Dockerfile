@@ -13,6 +13,7 @@ RUN apt-get update \
     ros-humble-moveit \ 
     ros-humble-moveit-visual-tools \
     python3-opencv \
+    python3-tk \
     && rm -rf /var/lib/apt/lists/*
 
 #example copy line

@@ -19,8 +19,8 @@ class FaceTrackerServo(Node):
         self.twist_pub = self.create_publisher(TwistStamped, '/servo_node/delta_twist_cmds', 10)
         self.marker_pub = self.create_publisher(Marker, '/camera_mount_marker', 10)
         
-        # Ensure we are in velocity control mode
-        self.switch_controller("forward_velocity_controller", "scaled_joint_trajectory_controller")
+        # Ensure we are in position control mode
+        self.switch_controller("forward_position_controller", "joint_trajectory_controller")
         self.start_servo()
         
         # Vision Setup

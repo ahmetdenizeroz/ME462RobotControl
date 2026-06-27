@@ -1,6 +1,6 @@
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit_visual_tools/moveit_visual_tools.h>
-#include <moveit/trajectory_processing/time_optimal_trajectory_generation.h>
+#include <moveit/trajectory_processing/iterative_time_parameterization.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <geometric_shapes/shape_operations.h>
 #include <shape_msgs/msg/mesh.hpp>
@@ -109,6 +109,8 @@ bool executeJoint(moveit::planning_interface::MoveGroupInterface& mgi, const std
                   const rclcpp::Logger& logger, auto& draw_traj, auto& mvt, auto& prompt, const std::string& label) {
   if (g_abort) return false;
   
+  mgi.setPlanningPipelineId("pilz_industrial_motion_planner");
+  mgi.setPlannerId("PTP");
   mgi.setJointValueTarget(joint_positions);
   moveit::planning_interface::MoveGroupInterface::Plan plan;
   if (!static_cast<bool>(mgi.plan(plan))) {
@@ -144,8 +146,8 @@ bool executeCartesianWaypoints(moveit::planning_interface::MoveGroupInterface& m
   robot_trajectory::RobotTrajectory rt(mgi.getRobotModel(), mgi.getName());
   rt.setRobotTrajectoryMsg(*mgi.getCurrentState(), plan.trajectory_);
   
-  trajectory_processing::TimeOptimalTrajectoryGeneration totg;
-  totg.computeTimeStamps(rt, v_scale, a_scale);
+  trajectory_processing::IterativeParabolicTimeParameterization iptp;
+  iptp.computeTimeStamps(rt, v_scale, a_scale);
   rt.getRobotTrajectoryMsg(plan.trajectory_);
 
   draw_traj(plan.trajectory_);
@@ -185,6 +187,8 @@ bool executeNamed(moveit::planning_interface::MoveGroupInterface& mgi, const std
                   const rclcpp::Logger& logger, auto& draw_traj, auto& mvt, auto& prompt, const std::string& label) {
   if (g_abort) return false;
 
+  mgi.setPlanningPipelineId("pilz_industrial_motion_planner");
+  mgi.setPlannerId("PTP");
   mgi.setNamedTarget(name);
   moveit::planning_interface::MoveGroupInterface::Plan plan;
   if (!static_cast<bool>(mgi.plan(plan))) return false;
@@ -360,7 +364,7 @@ int main(int argc, char* argv[])
   std::signal(SIGINT, sigint_handler);
   
   move_group_interface.setPlanningTime(5.0); 
-  float VEL_SCALE = 0.25; 
+  float VEL_SCALE = 0.1; 
   float CART_VEL_SCALE = 0.1; 
   move_group_interface.setMaxVelocityScalingFactor(VEL_SCALE);
   move_group_interface.setMaxAccelerationScalingFactor(VEL_SCALE);

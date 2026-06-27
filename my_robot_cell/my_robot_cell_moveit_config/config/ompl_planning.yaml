@@ -28,11 +28,6 @@ planner_configs:
 
 ur_arm:
   default_planner_config: RRTConnect
-  # Maximum fraction of the joint space that a single valid segment can cover.
-  # THIS IS THE CRITICAL FIX FOR "WHOLE MOTION IN ONE STEP".
-  # 0.005 forces OMPL to insert intermediate waypoints densely, completely avoiding
-  # the quintic spline overshoot issue in the joint_trajectory_controller.
-  longest_valid_segment_fraction: 0.005
   projection_evaluator: joints(ur5e_shoulder_pan_joint,ur5e_shoulder_lift_joint)
   planner_configs:
     - RRTConnect
