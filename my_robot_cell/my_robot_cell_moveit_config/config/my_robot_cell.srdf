@@ -58,11 +58,64 @@
         <joint name="ur5e_shoulder_pan_joint" value="-2.3895791212665003"/>
         <joint name="ur5e_shoulder_lift_joint" value="-2.418664117852682"/>
         <joint name="ur5e_elbow_joint" value="-1.875359058380127"/>
+        <joint name="ur5e_wrist_1_joint" value="-1.9891506634154261"/>
         <joint name="ur5e_wrist_2_joint" value="-1.6043995062457483"/>
         <joint name="ur5e_wrist_3_joint" value="1.5707476139068604"/>
-        <joint name="ur5e_wrist_1_joint" value="-1.9891506634154261"/>
     </group_state>
     
+    <group_state name="Tool_2_Take" group="ur_arm">
+        <joint name="ur5e_shoulder_pan_joint" value="-2.0331299940692347"/>
+        <joint name="ur5e_shoulder_lift_joint" value="-2.2137681446471156"/>
+        <joint name="ur5e_elbow_joint" value="-1.2919307947158813"/>
+        <joint name="ur5e_wrist_1_joint" value="-1.2062910360148926"/>
+        <joint name="ur5e_wrist_2_joint" value="1.5706932544708252"/>
+        <joint name="ur5e_wrist_3_joint" value="3.464433193206787"/>
+    </group_state>
+
+    <group_state name="Tool_2_Drop" group="ur_arm">
+        <joint name="ur5e_shoulder_pan_joint" value="-1.8669331709491175"/>
+        <joint name="ur5e_shoulder_lift_joint" value="-1.6779171429076136"/>
+        <joint name="ur5e_elbow_joint" value="-2.0657098293304443"/>
+        <joint name="ur5e_wrist_1_joint" value="-0.9683686655810853"/>
+        <joint name="ur5e_wrist_2_joint" value="1.5706557035446167"/>
+        <joint name="ur5e_wrist_3_joint" value="3.6306023597717285"/>
+    </group_state>
+
+    <group_state name="Tool_3_Take" group="ur_arm">
+        <joint name="ur5e_shoulder_pan_joint" value="-1.8861225287066858"/>
+        <joint name="ur5e_shoulder_lift_joint" value="-2.2894236050047816"/>
+        <joint name="ur5e_elbow_joint" value="-1.1587438583374023"/>
+        <joint name="ur5e_wrist_1_joint" value="-1.2635646027377625"/>
+        <joint name="ur5e_wrist_2_joint" value="1.5706090927124023"/>
+        <joint name="ur5e_wrist_3_joint" value="3.6113338470458984"/>
+    </group_state>
+
+    <group_state name="Tool_3_Drop" group="ur_arm">
+        <joint name="ur5e_shoulder_pan_joint" value="-1.6701200644122522"/>
+        <joint name="ur5e_shoulder_lift_joint" value="-1.7745048008360804"/>
+        <joint name="ur5e_elbow_joint" value="-1.946237325668335"/>
+        <joint name="ur5e_wrist_1_joint" value="-0.9909945887378235"/>
+        <joint name="ur5e_wrist_2_joint" value="1.5705393552780151"/>
+        <joint name="ur5e_wrist_3_joint" value="3.8273630142211914"/>
+    </group_state>
+    
+    <group_state name="tool_take_anchor" group="ur_arm">
+        <joint name="ur5e_shoulder_pan_joint" value="-2.0374296347247522"/>
+        <joint name="ur5e_shoulder_lift_joint" value="-1.9833909473814906"/>
+        <joint name="ur5e_elbow_joint" value="-0.9985051155090332"/>
+        <joint name="ur5e_wrist_1_joint" value="-1.7298089466490687"/>
+        <joint name="ur5e_wrist_2_joint" value="1.570746898651123"/>
+        <joint name="ur5e_wrist_3_joint" value="3.459979295730591"/>
+    </group_state>
+    
+    <group_state name="tool_drop_anchor" group="ur_arm">
+        <joint name="ur5e_shoulder_pan_joint" value="-1.9521525541888636"/>
+        <joint name="ur5e_shoulder_lift_joint" value="-1.6241785488524378"/>
+        <joint name="ur5e_elbow_joint" value="-1.4479844570159912"/>
+        <joint name="ur5e_wrist_1_joint" value="-1.6395284138121546"/>
+        <joint name="ur5e_wrist_2_joint" value="1.5706689357757568"/>
+        <joint name="ur5e_wrist_3_joint" value="3.54525089263916"/>
+    </group_state>
     <group_state name="home" group="ur_arm">
         <joint name="ur5e_elbow_joint" value="-2.5307"/>
         <joint name="ur5e_shoulder_lift_joint" value="-0.4363"/>
@@ -85,4 +138,15 @@
     <disable_collisions link1="ur5e_wrist_1_link" link2="ur5e_wrist_2_link" reason="Adjacent"/>
     <disable_collisions link1="ur5e_wrist_1_link" link2="ur5e_wrist_3_link" reason="Never"/>
     <disable_collisions link1="ur5e_wrist_2_link" link2="ur5e_wrist_3_link" reason="Adjacent"/>
+    
+    <!-- Dynamic Tools Collision Rules -->
+    <disable_collisions link1="cleaner_tool" link2="pool" reason="Never"/>
+    <disable_collisions link1="pen_tool" link2="pool" reason="Never"/>
+    <disable_collisions link1="tutankhamun_tool" link2="pool" reason="Never"/>
+    <disable_collisions link1="cleaner_tool" link2="tc_arm_side" reason="Adjacent"/>
+    <disable_collisions link1="pen_tool" link2="tc_arm_side" reason="Adjacent"/>
+    <disable_collisions link1="tutankhamun_tool" link2="tc_arm_side" reason="Adjacent"/>
+    <disable_collisions link1="cleaner_tool" link2="ur5e_wrist_3_link" reason="Never"/>
+    <disable_collisions link1="pen_tool" link2="ur5e_wrist_3_link" reason="Never"/>
+    <disable_collisions link1="tutankhamun_tool" link2="ur5e_wrist_3_link" reason="Never"/>
 </robot>

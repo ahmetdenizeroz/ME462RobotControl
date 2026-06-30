@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
+from rclpy.executors import MultiThreadedExecutor
+from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.action import ActionClient
 import math
 import time
@@ -44,8 +46,10 @@ class HeadlessDashboardNode(Node):
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
         
+        self.cb_group = ReentrantCallbackGroup()
+        
         self.ik_client = self.create_client(GetPositionIK, '/compute_ik')
-        self.cartesian_client = self.create_client(GetCartesianPath, '/compute_cartesian_path')
+        self.cartesian_client = self.create_client(GetCartesianPath, '/compute_cartesian_path', callback_group=self.cb_group)
         self.traj_client = ActionClient(self, FollowJointTrajectory, '/joint_trajectory_controller/follow_joint_trajectory')
         
         self.joint_names = [
@@ -63,6 +67,9 @@ class HeadlessDashboardNode(Node):
         self.sub_speed = self.create_subscription(Float32MultiArray, '/dashboard/set_speed', self.cmd_speed_callback, 10)
         self.sub_joints = self.create_subscription(Float32MultiArray, '/dashboard/move_joints', self.cmd_joints_callback, 10)
         self.sub_cartesian = self.create_subscription(Vector3, '/dashboard/move_cartesian', self.cmd_cartesian_callback, 10)
+        self.sub_abs_cartesian = self.create_subscription(Vector3, '/dashboard/move_absolute_cartesian', self.cmd_abs_cartesian_callback, 10)
+        self.sub_manhattan_cartesian = self.create_subscription(Vector3, '/dashboard/move_manhattan_cartesian', self.cmd_manhattan_cartesian_callback, 10, callback_group=self.cb_group)
+        self.sub_abs_manhattan_cartesian = self.create_subscription(Vector3, '/dashboard/move_absolute_manhattan', self.cmd_abs_manhattan_cartesian_callback, 10, callback_group=self.cb_group)
         self.sub_orient = self.create_subscription(Vector3, '/dashboard/reorient', self.cmd_orient_callback, 10)
 
         self.get_logger().info("Headless Dashboard Ready! Listening to /dashboard topics...")
@@ -134,6 +141,68 @@ class HeadlessDashboardNode(Node):
         target.orientation = curr.transform.rotation
         
         self.calculate_cartesian_path(target)
+
+    def cmd_abs_cartesian_callback(self, msg: Vector3):
+        curr = self.get_current_pose()
+        if not curr:
+            return
+            
+        self.get_logger().info(f"Commanding Absolute Cartesian: X:{msg.x}cm Y:{msg.y}cm Z:{msg.z}cm (Table Frame)")
+        x_table = msg.x / 100.0
+        y_table = msg.y / 100.0
+        z_table = msg.z / 100.0
+        
+        # Rotate table absolute coordinates into robot's base frame
+        theta = math.radians(45.0)
+        x_base = x_table * math.cos(theta) - y_table * math.sin(theta)
+        y_base = x_table * math.sin(theta) + y_table * math.cos(theta)
+        z_base = z_table
+        
+        target = Pose()
+        target.position.x = x_base
+        target.position.y = y_base
+        target.position.z = z_base
+        target.orientation = curr.transform.rotation
+        
+        self.calculate_cartesian_path(target)
+
+    def cmd_manhattan_cartesian_callback(self, msg: Vector3):
+        curr = self.get_current_pose()
+        if not curr: return
+        
+        self.get_logger().info(f"Commanding Relative Manhattan: X:{msg.x}cm Y:{msg.y}cm Z:{msg.z}cm")
+        dx_table, dy_table, dz_table = msg.x / 100.0, msg.y / 100.0, msg.z / 100.0
+        
+        theta = math.radians(45.0)
+        dx_base = dx_table * math.cos(theta) - dy_table * math.sin(theta)
+        dy_base = dx_table * math.sin(theta) + dy_table * math.cos(theta)
+        
+        target = Pose()
+        target.position.x = curr.transform.translation.x + dx_base
+        target.position.y = curr.transform.translation.y + dy_base
+        target.position.z = curr.transform.translation.z + dz_table
+        target.orientation = curr.transform.rotation
+        
+        self.calculate_manhattan_path(target)
+
+    def cmd_abs_manhattan_cartesian_callback(self, msg: Vector3):
+        curr = self.get_current_pose()
+        if not curr: return
+        
+        self.get_logger().info(f"Commanding Absolute Manhattan: X:{msg.x}cm Y:{msg.y}cm Z:{msg.z}cm")
+        x_table, y_table, z_table = msg.x / 100.0, msg.y / 100.0, msg.z / 100.0
+        
+        theta = math.radians(45.0)
+        x_base = x_table * math.cos(theta) - y_table * math.sin(theta)
+        y_base = x_table * math.sin(theta) + y_table * math.cos(theta)
+        
+        target = Pose()
+        target.position.x = x_base
+        target.position.y = y_base
+        target.position.z = z_table
+        target.orientation = curr.transform.rotation
+        
+        self.calculate_manhattan_path(target)
 
     def cmd_orient_callback(self, msg: Vector3):
         curr = self.get_current_pose()
@@ -212,33 +281,101 @@ class HeadlessDashboardNode(Node):
         except Exception as e:
             self.get_logger().error(f"Cartesian Call Error: {e}")
 
+    def process_and_send_cartesian_result(self, result):
+        traj = result.solution.joint_trajectory
+        
+        # Heuristic Time Parameterization Fallback
+        if len(traj.points) > 1 and traj.points[-1].time_from_start.sec == 0 and traj.points[-1].time_from_start.nanosec == 0:
+            self.get_logger().info("Applying heuristic time parameterization to Cartesian path...")
+            cumulative_sec = 0.0
+            for point in traj.points:
+                cumulative_sec += 0.05  # 50ms per 1cm waypoint
+                point.time_from_start.sec = int(cumulative_sec)
+                point.time_from_start.nanosec = int((cumulative_sec - int(cumulative_sec)) * 1e9)
+        
+        # Apply user-defined velocity scaling
+        traj = self.scale_trajectory_speed(traj)
+        
+        self.send_trajectory(traj)
+
     def cartesian_response_callback(self, future):
         try:
             result = future.result()
-            fraction = result.fraction
-            if fraction < 0.99:
-                self.get_logger().warn(f"Warning: MoveIt could only compute {fraction*100:.1f}% of the straight line. Singularity or Collision detected! Aborting.")
+            if result.fraction < 0.99:
+                self.get_logger().warn(f"Warning: MoveIt could only compute {result.fraction*100:.1f}% of the straight line. Singularity or Collision detected! Aborting.")
                 return
-                
-            traj = result.solution.joint_trajectory
-            
-            # Heuristic Time Parameterization Fallback
-            # If MoveIt returns an un-timed trajectory, we artificially insert timestamps
-            if len(traj.points) > 1 and traj.points[-1].time_from_start.sec == 0 and traj.points[-1].time_from_start.nanosec == 0:
-                self.get_logger().info("Applying heuristic time parameterization to Cartesian path...")
-                cumulative_sec = 0.0
-                for point in traj.points:
-                    cumulative_sec += 0.05  # 50ms per 1cm waypoint
-                    point.time_from_start.sec = int(cumulative_sec)
-                    point.time_from_start.nanosec = int((cumulative_sec - int(cumulative_sec)) * 1e9)
-            
-            # Apply user-defined velocity scaling
-            traj = self.scale_trajectory_speed(traj)
-            
-            self.send_trajectory(traj)
-            
+            self.process_and_send_cartesian_result(result)
         except Exception as e:
             self.get_logger().error(f"Cartesian Future Error: {e}")
+
+    def calculate_manhattan_path(self, target_pose: Pose):
+        if not self.cartesian_client.wait_for_service(timeout_sec=2.0):
+            self.get_logger().error("Cartesian Path service offline")
+            return
+            
+        curr = self.get_current_pose()
+        if not curr:
+            return
+            
+        start_z = curr.transform.translation.z
+        end_z = target_pose.position.z
+        
+        req = GetCartesianPath.Request()
+        req.header.frame_id = 'ur5e_base_link'
+        req.group_name = 'ur_arm'
+        req.max_step = 0.01
+        req.jump_threshold = 0.0
+        req.avoid_collisions = True
+        
+        # Step 1: Try direct line
+        req.waypoints = [target_pose]
+        self.get_logger().info("Trying direct Cartesian path...")
+        result = self.cartesian_client.call(req)
+        
+        if result.fraction >= 0.99:
+            self.get_logger().info("Direct path is clear! Executing...")
+            self.process_and_send_cartesian_result(result)
+            return
+            
+        self.get_logger().warn(f"Direct path collided (fraction {result.fraction}). Starting Manhattan Probe...")
+        
+        clearance_offset = 0.05 # 5cm
+        max_clearance = 0.50 # 50cm
+        
+        while clearance_offset <= max_clearance:
+            safe_z = max(start_z, end_z) + clearance_offset
+            self.get_logger().info(f"Probing Manhattan path at Z = {safe_z:.3f}m (+{clearance_offset*100:.0f}cm)...")
+            
+            wp1 = Pose()
+            wp1.position.x = curr.transform.translation.x
+            wp1.position.y = curr.transform.translation.y
+            wp1.position.z = safe_z
+            wp1.orientation = curr.transform.rotation
+            
+            wp2 = Pose()
+            wp2.position.x = target_pose.position.x
+            wp2.position.y = target_pose.position.y
+            wp2.position.z = safe_z
+            wp2.orientation = target_pose.orientation
+            
+            wp3 = Pose()
+            wp3.position.x = target_pose.position.x
+            wp3.position.y = target_pose.position.y
+            wp3.position.z = end_z
+            wp3.orientation = target_pose.orientation
+            
+            req.waypoints = [wp1, wp2, wp3]
+            result = self.cartesian_client.call(req)
+            
+            if result.fraction >= 0.99:
+                self.get_logger().info(f"Safe Manhattan path found at Z = {safe_z:.3f}m! Executing...")
+                self.process_and_send_cartesian_result(result)
+                return
+                
+            self.get_logger().warn(f"Collision at Z = {safe_z:.3f}m. Increasing clearance...")
+            clearance_offset += 0.05
+            
+        self.get_logger().error("Manhattan Probe failed! Reached maximum clearance ceiling (50cm) without finding a safe path.")
 
     def calculate_ik(self, target_pose: Pose):
         if not self.ik_client.wait_for_service(timeout_sec=2.0):
@@ -289,8 +426,14 @@ class HeadlessDashboardNode(Node):
 def main():
     rclpy.init()
     node = HeadlessDashboardNode()
-    rclpy.spin(node)
-    rclpy.shutdown()
+    executor = MultiThreadedExecutor()
+    executor.add_node(node)
+    try:
+        executor.spin()
+    finally:
+        executor.shutdown()
+        node.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == '__main__':
     main()

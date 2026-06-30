@@ -20,6 +20,7 @@ services:
       - ~/ws_me462:/home/ros/ws_me462
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /dev:/dev
+      - ./zenpool.yml:/home/ros/.config/tmuxinator/zenpool.yml
 
     environment:
       - DISPLAY=${DISPLAY}
@@ -32,10 +33,10 @@ services:
     # NVIDIA GPU support — requires nvidia-container-toolkit installed on host.
     # Comment out the deploy block if running on a machine without an NVIDIA GPU
     # (e.g. Raspberry Pi).
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]

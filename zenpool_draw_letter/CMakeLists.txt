@@ -71,6 +71,14 @@ install(PROGRAMS
   scripts/face_tracker_servo.py
   scripts/aruco_tracker_servo.py
   scripts/custom_dashboard.py
+  scripts/tool_manager.py
+  scripts/take_one.py
+  scripts/drop_one.py
+  scripts/take_two.py
+  scripts/drop_two.py
+  scripts/take_three.py
+  scripts/drop_three.py
+  scripts/full_cleaning.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

@@ -50,6 +50,14 @@
       </collision>
     </link>
 
+    <!-- Dummy frame rotated 180 degrees so +X points exactly where the user wants -->
+    <link name="pool_actual"/>
+    <joint name="pool_to_pool_actual" type="fixed">
+      <parent link="pool"/>
+      <child link="pool_actual"/>
+      <origin xyz="0 0 0" rpy="0 0 ${pi}" />
+    </joint>
+
     <link name="robot_mount"/>
     <joint name="base_to_robot_mount" type="fixed">
       <parent link="pool"/>
@@ -57,47 +65,6 @@
       <origin xyz="0.0 0.0 0" rpy="0 0 ${- 5*pi/4}" />
     </joint>
 
-    <!-- <link name="tool_box">
-      <visual>
-        <geometry>
-          <mesh filename="package://my_robot_cell_description/meshes/environment/ToolBoxPlatform.stl" />
-        </geometry>
-        <origin rpy="0 0 ${pi}" xyz="${0.25 - 0.045/2} 0 ${0.195/2}"/>
-        <material name="white" />
-      </visual>
-      <collision>
-        <geometry>
-          <mesh filename="package://my_robot_cell_description/meshes/environment/ToolBoxPlatform.stl" />
-        </geometry>
-        <origin rpy="0 0 ${pi}" xyz="${0.25 - 0.045/2} 0 ${0.195/2}"/>
-      </collision>
-    </link>
-    <joint name="pool_toolbox_platform_joint" type="fixed">
-      <parent link="pool" />
-      <child link="tool_box" />
-      <origin xyz="-.2275 .0 -.115" rpy="0 0 0" />
-    </joint>
-
-    <link name="tools">
-      <visual>
-        <geometry>
-          <mesh filename="package://my_robot_cell_description/meshes/environment/ToolBoxes.stl" />
-        </geometry>
-        <origin rpy="0 0 ${pi}" xyz="${0.25 - 0.045/2} 0 ${0.195/2}"/>
-        <material name="red" />
-      </visual>
-      <collision>
-        <geometry>
-          <mesh filename="package://my_robot_cell_description/meshes/environment/ToolBoxes.stl" />
-        </geometry>
-        <origin rpy="0 0 ${pi}" xyz="${0.25 - 0.045/2} 0 ${0.195/2}"/>
-      </collision>
-    </link>
-    <joint name="pool_toolboxes_joint" type="fixed">
-      <parent link="pool" />
-      <child link="tools" />
-      <origin xyz="-.2275 .0 -.115" rpy="0 0 0" />
-    </joint> -->
 
     <!--This will create the specific robot-->
     <xacro:ur_robot
@@ -134,47 +101,6 @@
       <origin rpy="0 0 0" xyz="0.0 0.0 0.02"/>
     </joint>
 
-    <!-- <link name="cleaner_tool">
-      <visual>
-        <geometry>
-          <mesh filename="package://my_robot_cell_description/meshes/end_effectors/CleanerTool.stl" scale="0.001 0.001 0.001"/>
-        </geometry>
-        <origin rpy="0 ${pi} 0" xyz="-0.031739 0.039119 -0.097"/>
-        <material name="blue"/>
-      </visual>
-      <collision>
-        <geometry>
-          <mesh filename="package://my_robot_cell_description/meshes/end_effectors/CleanerTool.stl" scale="0.001 0.001 0.001"/>
-        </geometry>
-        <origin rpy="0 ${pi} 0" xyz="-0.031739 0.039119 -0.097"/>
-      </collision>
-    </link>
-    <joint name="cleaner_to_tc" type="fixed">
-      <parent link="tc_arm_side"/>
-      <child link="cleaner_tool" />
-      <origin rpy="0 0 0" xyz="0.0 0.0 ${0.115}"/>
-    </joint>
-
-    <link name="pen_tool">
-      <visual>
-        <geometry>
-          <mesh filename="package://my_robot_cell_description/meshes/end_effectors/PenTool.stl" scale="0.001 0.001 0.001"/>
-        </geometry>
-        <origin rpy="0 ${pi} 0" xyz="-0.016839 0.039119 -0.097"/>
-        <material name="green"/>
-      </visual>
-      <collision>
-        <geometry>
-          <mesh filename="package://my_robot_cell_description/meshes/end_effectors/PenTool.stl" scale="0.001 0.001 0.001"/>
-        </geometry>
-        <origin rpy="0 ${pi} 0" xyz="-0.016839 0.039119 -0.097"/>
-      </collision>
-    </link>
-    <joint name="pen_to_tc" type="fixed">
-      <parent link="tc_arm_side"/>
-      <child link="pen_tool" />
-      <origin rpy="0 0 0" xyz="0.0 0.0 ${0.115}"/>
-    </joint> -->
 
   </xacro:macro>
 </robot>
