@@ -64,6 +64,7 @@ class FullCleaningSequence(Node):
         self.tf_listener = TransformListener(self.tf_buffer, self)
         
         self.traj_client = ActionClient(self, FollowJointTrajectory, '/joint_trajectory_controller/follow_joint_trajectory')
+
         self.cartesian_client = self.create_client(GetCartesianPath, '/compute_cartesian_path')
         self.plan_client = self.create_client(GetMotionPlan, '/plan_kinematic_path')
         
@@ -108,6 +109,8 @@ class FullCleaningSequence(Node):
         if result and result.status == 4:
             return True
         return False
+
+
 
     def scale_trajectory_speed(self, traj, speed_factor):
         if speed_factor >= 1.0: return traj
@@ -169,7 +172,7 @@ class FullCleaningSequence(Node):
         req.header.frame_id = 'ur5e_base_link'
         req.group_name = 'ur_arm'
         req.waypoints = waypoints
-        req.max_step = 0.01
+        req.max_step = 0.02  # Increased from 0.01 to 0.02 for smoother kinematics!
         req.avoid_collisions = True
         
         future = self.cartesian_client.call_async(req)
@@ -180,12 +183,12 @@ class FullCleaningSequence(Node):
             return False
             
         traj = result.solution.joint_trajectory
+        
+        # REMOVED the dangerous 50ms fallback loop!
+        # If time_from_start is 0, it means the Time Parameterization (TOTG/Ruckig) crashed!
         if len(traj.points) > 1 and traj.points[-1].time_from_start.sec == 0 and traj.points[-1].time_from_start.nanosec == 0:
-            cumulative_sec = 0.0
-            for point in traj.points:
-                cumulative_sec += 0.05
-                point.time_from_start.sec = int(cumulative_sec)
-                point.time_from_start.nanosec = int((cumulative_sec - int(cumulative_sec)) * 1e9)
+            self.get_logger().error("MoveIt Time Parameterization FAILED (time=0). Aborting to prevent velocity spikes!")
+            return False
                 
         traj = self.scale_trajectory_speed(traj, self.cart_speed)
         return self.execute_trajectory(traj)
@@ -256,8 +259,8 @@ class FullCleaningSequence(Node):
 
 def main(args=None):
     parser = argparse.ArgumentParser(description='Full Cleaning Sequence')
-    parser.add_argument('--joint_speed', type=float, default=0.2, help='Speed factor for joint moves (0.0 to 1.0)')
-    parser.add_argument('--cart_speed', type=float, default=0.5, help='Speed factor for Cartesian moves (0.0 to 1.0)')
+    parser.add_argument('--joint_speed', type=float, default=0.4, help='Speed factor for joint moves (0.0 to 1.0)')
+    parser.add_argument('--cart_speed', type=float, default=0.35, help='Speed factor for Cartesian moves (0.0 to 1.0)')
     parsed_args, ros_args = parser.parse_known_args(sys.argv[1:])
     
     rclpy.init(args=ros_args)
@@ -302,9 +305,10 @@ def main(args=None):
         # Step 1: Collision Aware Joint Move
         if not node.execute_joint_trajectory_safe(start_joints_corrected): raise Exception("Step 1 Failed")
         time.sleep(0.5)
-        
+        CLEANING_Z = 1.0
+
         # Step 2: move 25 cm in -z direction to start point
-        if not node.execute_absolute_cartesian(-55.0, 65.0, 0.0): raise Exception("Failed")
+        if not node.execute_absolute_cartesian(-55.0, 65.0, CLEANING_Z): raise Exception("Failed")
         time.sleep(0.5)
         
         # Define the sweep sequence: (x, y, z, required_yaw_after_move)
@@ -313,45 +317,51 @@ def main(args=None):
         
         sequence_steps = [
             # Sweep Right
-            {'type': 'move', 'x': 55.0, 'y': 65.0, 'z': 0.0},
+            {'type': 'move', 'x': 55.0, 'y': 65.0, 'z': CLEANING_Z},
             {'type': 'rot', 'yaw': -135.0},
-            {'type': 'move', 'x': 55.0, 'y': 60.0, 'z': 0.0},
+            {'type': 'move', 'x': 55.0, 'y': 60.0, 'z': CLEANING_Z},
             
             # Sweep Left
-            {'type': 'move', 'x': -55.0, 'y': 60.0, 'z': 0.0},
+            {'type': 'move', 'x': -55.0, 'y': 60.0, 'z': CLEANING_Z},
             {'type': 'rot', 'yaw': -45.0},
-            {'type': 'move', 'x': -55.0, 'y': 55.0, 'z': 0.0},
+            {'type': 'move', 'x': -55.0, 'y': 55.0, 'z': CLEANING_Z},
             
             # Sweep Right
-            {'type': 'move', 'x': 55.0, 'y': 55.0, 'z': 0.0},
+            {'type': 'move', 'x': 55.0, 'y': 55.0, 'z': CLEANING_Z},
             {'type': 'rot', 'yaw': -135.0},
-            {'type': 'move', 'x': 55.0, 'y': 50.0, 'z': 0.0},
+            {'type': 'move', 'x': 55.0, 'y': 50.0, 'z': CLEANING_Z},
             
             # Sweep Left
-            {'type': 'move', 'x': -55.0, 'y': 50.0, 'z': 0.0},
+            {'type': 'move', 'x': -55.0, 'y': 50.0, 'z': CLEANING_Z},
             {'type': 'rot', 'yaw': -45.0},
-            {'type': 'move', 'x': -55.0, 'y': 45.0, 'z': 0.0},
+            {'type': 'move', 'x': -55.0, 'y': 45.0, 'z': CLEANING_Z},
             
             # Sweep Right
-            {'type': 'move', 'x': 55.0, 'y': 45.0, 'z': 0.0},
+            {'type': 'move', 'x': 55.0, 'y': 45.0, 'z': CLEANING_Z},
             {'type': 'rot', 'yaw': -135.0},
-            {'type': 'move', 'x': 55.0, 'y': 40.0, 'z': 0.0},
+            {'type': 'move', 'x': 55.0, 'y': 40.0, 'z': CLEANING_Z},
             
             # Sweep Left
-            {'type': 'move', 'x': -55.0, 'y': 40.0, 'z': 0.0},
+            {'type': 'move', 'x': -55.0, 'y': 40.0, 'z': CLEANING_Z},
             {'type': 'rot', 'yaw': -45.0},
-            {'type': 'move', 'x': -55.0, 'y': 35.0, 'z': 0.0},
+            {'type': 'move', 'x': -55.0, 'y': 35.0, 'z': CLEANING_Z},
             
             # Sweep Right
-            {'type': 'move', 'x': 55.0, 'y': 35.0, 'z': 0.0},
+            {'type': 'move', 'x': 55.0, 'y': 35.0, 'z': CLEANING_Z},
             {'type': 'rot', 'yaw': -135.0},
-            {'type': 'move', 'x': 55.0, 'y': 30.0, 'z': 0.0},
+            {'type': 'move', 'x': 55.0, 'y': 30.0, 'z': CLEANING_Z},
             
             # Sweep Left (Final)
-            {'type': 'move', 'x': -55.0, 'y': 30.0, 'z': 0.0},
+            {'type': 'move', 'x': -55.0, 'y': 30.0, 'z': CLEANING_Z},
             
             # Lift Z
-            {'type': 'move', 'x': -55.0, 'y': 30.0, 'z': 25.0}
+            {'type': 'move', 'x': -55.0, 'y': 30.0, 'z': 25.0},
+            
+            # Return to safe center to clear base for next tool swap
+            {'type': 'move', 'x': 0.0, 'y': 55.0, 'z': 25.0},
+            
+            # Reset orientation back to 0.0 degrees (perfectly square to table)
+            {'type': 'rot', 'yaw': 0.0}
         ]
         
         for step in sequence_steps:
@@ -365,6 +375,7 @@ def main(args=None):
         
     except Exception as e:
         node.get_logger().error(f"Sequence aborted: {e}")
+        sys.exit(1)
     finally:
         node.destroy_node()
         rclpy.shutdown()

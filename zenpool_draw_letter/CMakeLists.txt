@@ -79,6 +79,8 @@ install(PROGRAMS
   scripts/take_three.py
   scripts/drop_three.py
   scripts/full_cleaning.py
+  scripts/drawing_job_executor.py
+  scripts/active_grippering_sequence.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

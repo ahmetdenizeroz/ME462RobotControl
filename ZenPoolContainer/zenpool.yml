@@ -3,16 +3,16 @@ name: zenpool
 project_root: "/home/ros/ws_me462"
 windows:
 - zsh:
-    layout: 8795,282x70,0,0{141x70,0,0[141x22,0,0,45,141x24,0,23,48,141x22,0,48,49],140x70,142,0[140x35,142,0,46,140x34,142,36,47]}
+    layout: "f651,248x60,0,0{124x60,0,0[124x30,0,0,0,124x29,0,31,2],123x60,125,0,1}"
+    panes:
+    - cd /home/ros/ws_me462 ; source install/local_setup.bash ; clear
+    - cd /home/ros/ws_me462 ; source install/local_setup.bash ; clear
+    - cd /home/ros/ws_me462 ; source install/local_setup.bash ; clear ; python3 src/ME462RobotControl/zenpool_draw_letter/scripts/command_search_tui.py
+- background_nodes:
+    layout: tiled
     panes:
     # NOTE: Change robot_ip below to match the IP shown on the UR5e teach pendant (Settings > System > Network)
     - cd /home/ros/ws_me462 ; source install/local_setup.bash ; clear ; ros2 launch my_robot_cell_control start_robot.launch.py robot_ip:=192.168.8.4 launch_rviz:=false
     - cd /home/ros/ws_me462 ; source install/local_setup.bash ; clear ; ros2 launch my_robot_cell_moveit_config move_group.launch.py
-    - cd /home/ros/ws_me462 ; source install/local_setup.bash ; clear ; ros2 launch my_robot_cell_moveit_config moveit_rviz.launch.py rviz_config:=/home/ros/.zenpool.config.rviz
-    - cd /home/ros/ws_me462 ; source install/local_setup.bash ; clear
-    - cd /home/ros/ws_me462 ; source install/local_setup.bash ; clear
-- background_nodes:
-    layout: tiled
-    panes:
     - cd /home/ros/ws_me462 ; source install/local_setup.bash ; clear ; ros2 run zenpool_draw_letter custom_dashboard.py
     - cd /home/ros/ws_me462 ; source install/local_setup.bash ; clear ; sleep 10 ; ros2 run zenpool_draw_letter tool_manager.py

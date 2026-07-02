@@ -58,6 +58,14 @@
       <origin xyz="0 0 0" rpy="0 0 ${pi}" />
     </joint>
 
+    <!-- Drawing Area Frame -->
+    <link name="drawing_area"/>
+    <joint name="pool_actual_to_drawing_area" type="fixed">
+      <parent link="pool_actual"/>
+      <child link="drawing_area"/>
+      <origin xyz="-0.5 0.30 0" rpy="0 0 0" />
+    </joint>
+
     <link name="robot_mount"/>
     <joint name="base_to_robot_mount" type="fixed">
       <parent link="pool"/>

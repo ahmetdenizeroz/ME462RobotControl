@@ -4,6 +4,7 @@ from rclpy.node import Node
 from rclpy.action import ActionClient
 import math
 import time
+import sys
 
 from control_msgs.action import FollowJointTrajectory
 from trajectory_msgs.msg import JointTrajectoryPoint, JointTrajectory
@@ -62,6 +63,113 @@ class TakePenSequence(Node):
             -0.9909945887378235, 1.5705393552780151, 3.8273630142211914
         ]
         
+
+
+    def execute_manhattan_to_joints(self, target_joints):
+        self.get_logger().info("Calculating FK for target joint angles to begin Manhattan probe...")
+        if not self.fk_client.wait_for_service(timeout_sec=5.0):
+            return False
+            
+        req_fk = GetPositionFK.Request()
+        req_fk.header.frame_id = "ur5e_base_link"
+        req_fk.fk_link_names = ["ur5e_tool0"]
+        req_fk.robot_state.joint_state = JointState()
+        req_fk.robot_state.joint_state.name = self.joint_names
+        req_fk.robot_state.joint_state.position = target_joints
+        
+        future_fk = self.fk_client.call_async(req_fk)
+        result_fk = wait_for_future(self, future_fk)
+        if not result_fk or not result_fk.pose_stamped:
+            return False
+        target_pose = result_fk.pose_stamped[0].pose
+        
+        req_fk_curr = GetPositionFK.Request()
+        req_fk_curr.header.frame_id = "ur5e_base_link"
+        req_fk_curr.fk_link_names = ["ur5e_tool0"]
+        future_fk_curr = self.fk_client.call_async(req_fk_curr)
+        result_fk_curr = wait_for_future(self, future_fk_curr)
+        if not result_fk_curr or not result_fk_curr.pose_stamped:
+            return False
+        curr_pose = result_fk_curr.pose_stamped[0].pose
+        
+        start_z = curr_pose.position.z
+        end_z = target_pose.position.z
+        
+        req = GetCartesianPath.Request()
+        req.header.frame_id = 'ur5e_base_link'
+        req.group_name = 'ur_arm'
+        req.max_step = 0.01
+        req.jump_threshold = 0.0
+        req.avoid_collisions = True
+        
+        speed_factor = 0.5
+        time_multiplier = 1.0 / speed_factor
+        
+        req.waypoints = [target_pose]
+        fut_path = self.cartesian_client.call_async(req)
+        res_path = wait_for_future(self, fut_path)
+        
+        if res_path and res_path.fraction >= 0.99:
+            self.get_logger().info("Direct path is clear! Executing...")
+            traj = res_path.solution.joint_trajectory
+            for point in traj.points:
+                t_sec = point.time_from_start.sec + (point.time_from_start.nanosec * 1e-9)
+                t_sec *= time_multiplier
+                point.time_from_start.sec = int(t_sec)
+                point.time_from_start.nanosec = int((t_sec - int(t_sec)) * 1e9)
+                if point.velocities: point.velocities = [v * speed_factor for v in point.velocities]
+                if point.accelerations: point.accelerations = [a * (speed_factor**2) for a in point.accelerations]
+            return self.execute_cartesian_trajectory(traj)
+            
+        self.get_logger().warn(f"Direct path collided. Starting Manhattan Probe...")
+        
+        clearance_offset = 0.05
+        max_clearance = 0.50
+        
+        while clearance_offset <= max_clearance:
+            safe_z = max(start_z, end_z) + clearance_offset
+            self.get_logger().info(f"Probing Manhattan path at Z = {safe_z:.3f}m (+{clearance_offset*100:.0f}cm)...")
+            
+            wp1 = Pose()
+            wp1.position.x = curr_pose.position.x
+            wp1.position.y = curr_pose.position.y
+            wp1.position.z = safe_z
+            wp1.orientation = curr_pose.orientation
+            
+            wp2 = Pose()
+            wp2.position.x = target_pose.position.x
+            wp2.position.y = target_pose.position.y
+            wp2.position.z = safe_z
+            wp2.orientation = target_pose.orientation
+            
+            wp3 = Pose()
+            wp3.position.x = target_pose.position.x
+            wp3.position.y = target_pose.position.y
+            wp3.position.z = end_z
+            wp3.orientation = target_pose.orientation
+            
+            req.waypoints = [wp1, wp2, wp3]
+            fut_path = self.cartesian_client.call_async(req)
+            res_path = wait_for_future(self, fut_path)
+            
+            if res_path and res_path.fraction >= 0.99:
+                self.get_logger().info(f"Safe Manhattan path found at Z = {safe_z:.3f}m! Executing...")
+                traj = res_path.solution.joint_trajectory
+                for point in traj.points:
+                    t_sec = point.time_from_start.sec + (point.time_from_start.nanosec * 1e-9)
+                    t_sec *= time_multiplier
+                    point.time_from_start.sec = int(t_sec)
+                    point.time_from_start.nanosec = int((t_sec - int(t_sec)) * 1e9)
+                    if point.velocities: point.velocities = [v * speed_factor for v in point.velocities]
+                    if point.accelerations: point.accelerations = [a * (speed_factor**2) for a in point.accelerations]
+                return self.execute_cartesian_trajectory(traj)
+                
+            self.get_logger().warn(f"Collision at Z = {safe_z:.3f}m. Increasing clearance...")
+            clearance_offset += 0.05
+            
+        self.get_logger().error("Manhattan Probe failed! Reached maximum clearance ceiling without finding a safe path.")
+        return False
+
     def execute_joint_trajectory(self, target_joints, sec=3):
         self.get_logger().info(f"Waiting for Trajectory Server...")
         if not self.traj_client.wait_for_server(timeout_sec=5.0):
@@ -212,7 +320,7 @@ def main(args=None):
     try:
         # Step 1: Move to Tool Take Anchor
         node.get_logger().info("=== STEP 1: Moving to Tool Take Anchor ===")
-        if not node.execute_joint_trajectory(node.tool_take_anchor, sec=4):
+        if not node.execute_manhattan_to_joints(node.tool_take_anchor):
             raise Exception("Step 1 Failed!")
             
         # Step 2: Move to Tool Take
@@ -238,6 +346,7 @@ def main(args=None):
         
     except Exception as e:
         node.get_logger().error(f"Sequence aborted: {e}")
+        sys.exit(1)
         
     finally:
         node.destroy_node()

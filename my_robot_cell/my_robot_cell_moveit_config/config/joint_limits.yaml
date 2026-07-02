@@ -14,39 +14,39 @@ joint_limits:
     has_acceleration_limits: true
     max_acceleration: 2.5
     has_jerk_limits: true
-    max_jerk: 10.0
+    max_jerk: 3.0
   ur5e_shoulder_lift_joint:
     has_velocity_limits: true
     max_velocity: 3.1415926535897931
     has_acceleration_limits: true
     max_acceleration: 2.5
     has_jerk_limits: true
-    max_jerk: 10.0
+    max_jerk: 3.0
   ur5e_shoulder_pan_joint:
     has_velocity_limits: true
     max_velocity: 3.1415926535897931
     has_acceleration_limits: true
     max_acceleration: 2.5
     has_jerk_limits: true
-    max_jerk: 10.0
+    max_jerk: 3.0
   ur5e_wrist_1_joint:
     has_velocity_limits: true
     max_velocity: 3.1415926535897931
     has_acceleration_limits: true
     max_acceleration: 2.5
     has_jerk_limits: true
-    max_jerk: 10.0
+    max_jerk: 3.0
   ur5e_wrist_2_joint:
     has_velocity_limits: true
     max_velocity: 3.1415926535897931
     has_acceleration_limits: true
     max_acceleration: 2.5
     has_jerk_limits: true
-    max_jerk: 10.0
+    max_jerk: 3.0
   ur5e_wrist_3_joint:
     has_velocity_limits: true
-    max_velocity: 3.1415926535897931
+    max_velocity: 1.5707963267948966
     has_acceleration_limits: true
     max_acceleration: 2.5
     has_jerk_limits: true
-    max_jerk: 10.0
+    max_jerk: 3.0

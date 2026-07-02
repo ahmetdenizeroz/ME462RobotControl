@@ -136,23 +136,42 @@ class ToolManagerNode(Node):
             
     def cmd_callback(self, msg: String):
         parts = msg.data.lower().strip().split()
-        if len(parts) != 2:
-            self.get_logger().error("Command must be 'attach <tool>' or 'detach <tool>'")
+        if len(parts) == 0:
             return
             
         action = parts[0]
-        tool_name = parts[1]
+        tool_name = parts[1] if len(parts) > 1 else None
         
-        if tool_name not in self.tools:
-            self.get_logger().error(f"Unknown tool: '{tool_name}'. Available: {list(self.tools.keys())}")
-            return
-            
-        if action == "attach":
+        if action == "attach" and tool_name:
             self.attach_tool_to_robot(tool_name)
-        elif action == "detach":
+        elif action == "detach" and tool_name:
             self.drop_tool_in_toolbox(tool_name)
+        elif action == "ignore":
+            self.get_logger().info("Temporarily removing all tools from scene to ignore collisions.")
+            self.remove_all_tools()
+        elif action == "reactivate":
+            self.get_logger().info("Reactivating tools. Spawning missing tools into toolbox.")
+            self.spawn_initial_tools()
         else:
-            self.get_logger().error("Unknown action. Use 'attach' or 'detach'")
+            self.get_logger().error("Unknown action. Use 'attach', 'detach', 'ignore', or 'reactivate'")
+
+    def remove_all_tools(self):
+        scene_msg = PlanningScene()
+        scene_msg.is_diff = True
+        for name, tool in self.tools.items():
+            for suffix in ["_toolbox", "_attached"]:
+                co = CollisionObject()
+                co.id = tool["id"] + suffix
+                co.operation = CollisionObject.REMOVE
+                scene_msg.world.collision_objects.append(co)
+                
+                aco = AttachedCollisionObject()
+                aco.object.id = tool["id"] + suffix
+                aco.link_name = "tc_arm_side"
+                aco.object.operation = CollisionObject.REMOVE
+                scene_msg.robot_state.attached_collision_objects.append(aco)
+                
+        self.pub_scene.publish(scene_msg)
 
     def build_pose(self, xyz, rpy):
         p = Pose()
