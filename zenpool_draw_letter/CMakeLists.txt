@@ -81,6 +81,8 @@ install(PROGRAMS
   scripts/full_cleaning.py
   scripts/drawing_job_executor.py
   scripts/active_grippering_sequence.py
+  scripts/take_papis.py
+  scripts/drop_papis.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

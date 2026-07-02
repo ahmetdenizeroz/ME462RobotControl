@@ -20,6 +20,8 @@ import tf2_ros
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 
+from daisy_api import DaisyAPI
+
 def quaternion_from_euler(roll, pitch, yaw):
     cy = math.cos(yaw * 0.5)
     sy = math.sin(yaw * 0.5)
@@ -64,6 +66,8 @@ class DrawingJobExecutor(Node):
         self.gripper_pub_r = self.create_publisher(Float32, '/gripper/command_right', 10)
         self.tool_manager_pub = self.create_publisher(String, '/tool_manager/command', 10)
         
+        self.daisy = DaisyAPI(self)
+        
         self.joint_names = [
             'ur5e_shoulder_pan_joint',
             'ur5e_shoulder_lift_joint',
@@ -81,7 +85,7 @@ class DrawingJobExecutor(Node):
         self.CANVAS_H = 0.35 # 35 cm
         self.HOVER_OFFSET = 0.03  # 3 cm relative hover height
         self.DRAW_Z = 0.0 # -1.5 cm (touching canvas)
-        self.ERASE_Z = 0.01  # 0 cm (touching canvas)
+        self.ERASE_Z = 0.005  # 0 cm (touching canvas)
         self.FINGER_Z = 0.174 # 5 cm (Tutan-Khamun)
         
         # Tool swapping script mappings
@@ -206,6 +210,7 @@ class DrawingJobExecutor(Node):
         
         if not result or result.motion_plan_response.error_code.val != 1:
             self.get_logger().error("Failed to find a safe joint path!")
+            self.daisy.say_oops()
             return False
             
         traj = result.motion_plan_response.trajectory.joint_trajectory
@@ -229,6 +234,7 @@ class DrawingJobExecutor(Node):
         
         if not result or result.fraction < 0.99:
             self.get_logger().error(f"Failed Cartesian Path! (Fraction: {result.fraction if result else 'None'})")
+            self.daisy.say_oops()
             return False
             
         traj = result.solution.joint_trajectory
@@ -294,14 +300,8 @@ class DrawingJobExecutor(Node):
 
     def execute_job_dict(self, job):
         self.get_logger().info(f"Loaded job {job.get('job_id')}")
-        
-        self.get_logger().info("Enforcing perfectly square wrist orientation before starting job...")
-        reorient_msg = Vector3()
-        reorient_msg.x = 0.0
-        reorient_msg.y = 0.0
-        reorient_msg.z = 0.0
-        self.reorient_pub.publish(reorient_msg)
-        time.sleep(3.5)
+        self.daisy.take_control()
+        self.daisy.nod_head()
         
         has_started_strokes = False
         
@@ -313,6 +313,7 @@ class DrawingJobExecutor(Node):
                 
             if atype == "erase_all":
                 self.get_logger().info("Erase All detected! Executing full_cleaning.py...")
+                self.daisy.look_around()
                 if self.current_tool != "cleaner":
                     if self.current_tool:
                         self.get_logger().info(f"Moving to safe posture before dropping {self.current_tool}...")
@@ -400,13 +401,16 @@ class DrawingJobExecutor(Node):
             # Apply dynamic rotation if this is a Squeegee or Finger stroke
             if atype in ["erase_squeegee", "erase_finger"] and "yaw" in action:
                 target_yaw = action.get("yaw", 0.0)
-                new_q = quaternion_from_euler(math.pi, 0.0, target_yaw)
+                # Add a 90-degree (pi/2) offset because the physical tool is mounted 90 degrees rotated
+                # relative to the ur5e_tool0 flange's X-axis
+                yaw_offset = math.pi / 2.0
+                new_q = quaternion_from_euler(math.pi, 0.0, target_yaw + yaw_offset)
                 orientation = Pose().orientation
                 orientation.x = new_q[0]
                 orientation.y = new_q[1]
                 orientation.z = new_q[2]
                 orientation.w = new_q[3]
-                self.get_logger().info(f"Rotating tool to trajectory angle: {math.degrees(target_yaw):.1f} deg")
+                self.get_logger().info(f"Rotating tool to trajectory angle: {math.degrees(target_yaw):.1f} deg (+90 deg offset)")
             else:
                 orientation = base_orientation
                 
@@ -464,6 +468,7 @@ class DrawingJobExecutor(Node):
                 
         self.get_logger().info("Job fully executed! Returning to safe Cartesian center...")
         self.move_to_safe_center()
+        self.daisy.daisy_dance()
 
 def main(args=None):
     parser = argparse.ArgumentParser(description='Drawing Job Executor (TCP Server & Offline)')

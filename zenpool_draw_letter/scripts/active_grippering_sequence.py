@@ -89,6 +89,18 @@ class ActiveGripperingSequence(Node):
     def execute_trajectory(self, trajectory_msg):
         if not self.traj_client.wait_for_server(timeout_sec=5.0):
             self.abort("Trajectory Server offline")
+            
+        # Fix for velocity limit errors on UR robots:
+        # If the first point is at t=0, the controller attempts to reach it instantly.
+        # Removing it forces smooth interpolation from the true current state to the second point.
+        if len(trajectory_msg.points) > 1:
+            first_pt = trajectory_msg.points[0]
+            if first_pt.time_from_start.sec == 0 and first_pt.time_from_start.nanosec == 0:
+                trajectory_msg.points.pop(0)
+                
+        # Set trajectory stamp to now so it starts executing immediately
+        trajectory_msg.header.stamp = self.get_clock().now().to_msg()
+        
         goal_msg = FollowJointTrajectory.Goal()
         goal_msg.trajectory = trajectory_msg
         send_goal_future = self.traj_client.send_goal_async(goal_msg)
@@ -115,6 +127,10 @@ class ActiveGripperingSequence(Node):
         req.motion_plan_request.num_planning_attempts = 50
         req.motion_plan_request.allowed_planning_time = 10.0
         
+        # Use MoveIt's native scaling instead of manual scaling to guarantee dynamically valid trajectories
+        req.motion_plan_request.max_velocity_scaling_factor = 0.1
+        req.motion_plan_request.max_acceleration_scaling_factor = 0.1
+        
         c = Constraints()
         for i, name in enumerate(self.joint_names):
             jc = JointConstraint()
@@ -132,7 +148,6 @@ class ActiveGripperingSequence(Node):
             self.abort(f"Failed to find a safe joint path! Error Code: {result.motion_plan_response.error_code.val if result else 'None'}")
             
         traj = result.motion_plan_response.trajectory.joint_trajectory
-        traj = self.scale_trajectory_speed(traj, 0.3) # 50% speed
         return self.execute_trajectory(traj)
 
     def get_current_fk(self, frame_id='pool_actual'):
@@ -219,7 +234,7 @@ def main(args=None):
     node.execute_gripper_action(position=0.0, max_effort=0.0)
     
     node.get_logger().info("9. Moving to joint pos 5")
-    node.execute_joint_move([-2.389397923146383, -2.420762678185934, -1.8694475889205933, -1.993124624291891, -1.6041844526873987, 1.5708009004592896])
+    node.execute_joint_move([-2.3858206907855433, -2.4463120899596156, -1.8736623525619507, -1.967682500878805, -1.603915039693014, 1.5743447542190552])
     
     node.get_logger().info("10. Sending GRASP to gripper")
     node.execute_gripper_action(position=1.0, max_effort=1.0)
@@ -228,7 +243,7 @@ def main(args=None):
     input("Press Enter to proceed further...")
     
     node.get_logger().info("11. Moving 20cm in -Y")
-    node.execute_relative_cartesian(0.0, -0.2, 0.0)
+    node.execute_relative_cartesian(0.0, -0.10, 0.0)
     
     node.get_logger().info("12. Moving 20cm in -X")
     node.execute_relative_cartesian(-0.2, 0.0, 0.0)
@@ -238,7 +253,14 @@ def main(args=None):
     
     node.get_logger().info("14. Moving 30cm in +Z")
     node.execute_relative_cartesian(0.0, 0.0, 0.3)
-    
+
+    node.get_logger().info("Moving to joint pos A")
+    node.execute_joint_move([-1.1464913527118128, -2.250974794427389, -1.194556713104248, -1.1791623395732422, -0.3630111853228968, 1.5714046955108643])
+    node.get_logger().info("Moving to joint pos B")
+    node.execute_joint_move([-1.1465452353106897, -2.2510014973082484, -1.1945044994354248, -1.1792642933181305, 1.5664384365081787, 1.5713257789611816])
+    node.get_logger().info("Moving to joint pos C")
+    node.execute_joint_move([-1.146506134663717, -2.250972887078756, -1.1945204734802246, -1.1792010229877015, 1.5662907361984253, 3.115069627761841])
+
     node.get_logger().info("15. Running take_one.py sequence")
     subprocess.run(["ros2", "run", "zenpool_draw_letter", "take_one.py"])
     

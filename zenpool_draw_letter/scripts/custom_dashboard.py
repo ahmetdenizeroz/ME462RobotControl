@@ -12,6 +12,7 @@ from trajectory_msgs.msg import JointTrajectoryPoint, JointTrajectory
 from moveit_msgs.srv import GetPositionIK, GetCartesianPath
 from geometry_msgs.msg import Pose, Vector3
 from std_msgs.msg import Float32MultiArray
+from sensor_msgs.msg import JointState
 
 import tf2_ros
 from tf2_ros.buffer import Buffer
@@ -71,9 +72,22 @@ class HeadlessDashboardNode(Node):
         self.sub_manhattan_cartesian = self.create_subscription(Vector3, '/dashboard/move_manhattan_cartesian', self.cmd_manhattan_cartesian_callback, 10, callback_group=self.cb_group)
         self.sub_abs_manhattan_cartesian = self.create_subscription(Vector3, '/dashboard/move_absolute_manhattan', self.cmd_abs_manhattan_cartesian_callback, 10, callback_group=self.cb_group)
         self.sub_orient = self.create_subscription(Vector3, '/dashboard/reorient', self.cmd_orient_callback, 10)
+        
+        self.current_joints = None
+        self.sub_js = self.create_subscription(JointState, '/joint_states', self.js_cb, 10)
 
         self.get_logger().info("Headless Dashboard Ready! Listening to /dashboard topics...")
         
+    def js_cb(self, msg: JointState):
+        joints = []
+        for name in self.joint_names:
+            if name in msg.name:
+                idx = msg.name.index(name)
+                joints.append(msg.position[idx])
+            else:
+                return
+        self.current_joints = joints
+
     def cmd_speed_callback(self, msg: Float32MultiArray):
         if len(msg.data) != 1:
             self.get_logger().error("Send exactly 1 value (0.0 to 1.0) for speed factor!")
@@ -243,13 +257,21 @@ class HeadlessDashboardNode(Node):
         goal_msg = FollowJointTrajectory.Goal()
         goal_msg.trajectory.joint_names = self.joint_names
         
+        duration = 3.0
+        if self.current_joints:
+            max_dist = max(abs(t - c) for t, c in zip(joint_angles_rad, self.current_joints))
+            speed = max(0.05, 0.5 * self.speed_factor)
+            calc_time = max_dist / speed
+            duration = max(1.0, calc_time)
+
         point = JointTrajectoryPoint()
         point.positions = joint_angles_rad
-        point.time_from_start.sec = 3
+        point.time_from_start.sec = int(duration)
+        point.time_from_start.nanosec = int((duration - int(duration)) * 1e9)
         
         goal_msg.trajectory.points = [point]
         self.traj_client.send_goal_async(goal_msg)
-        self.get_logger().info("Trajectory Sent to MoveIt successfully!")
+        self.get_logger().info(f"Trajectory Sent to MoveIt successfully! (Duration: {duration:.1f}s)")
 
     def send_trajectory(self, trajectory_msg: JointTrajectory):
         if not self.traj_client.wait_for_server(timeout_sec=2.0):
